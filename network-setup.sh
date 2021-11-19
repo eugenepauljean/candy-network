@@ -23,18 +23,25 @@ eth2ip=""
 eth2mask="24"
 eth2gw=""
 ##############################################################################
-### REMOVE Autoname ethernet configuration
-rmautoname=/etc/udev/rules.d/80-net-name-slot.rules
-touch $rmautoname
-ln -s /dev/null $rmautoname
+### DISABLE autoname interface
+forcenameslot=/etc/udev/rules.d/80-net-name-slot.rules
+rm $forcenameslot
+touch $forcenameslot
+ln -s /dev/null $forcenameslot
 
-### CREATE udev rules and define interface name manually
+### CREATE udev rules and associate MACaddr with new name
+ethname=/etc/udev/rules.d/10-network.rules
+rm $ethname
 echo "\
-SUBSYSTEM=="net", ATTRS{address}=="$eth1mac", NAME="$eth1name" \
-SUBSYSTEM=="net", ATTRS{address}=="$eth2mac", NAME="$eth2name" \
-" > /etc/udev/rules.d/10-network.rules
+SUBSYSTEM==\"net\", ATTRS{address}==\"$eth1mac\", NAME=\"$eth1name\"
+SUBSYSTEM==\"net\", ATTRS{address}==\"$eth2mac\", NAME=\"$eth2name\" \
+" > $ethname
 
 ### CREATE SYSTEMD Network Service
+networkservice=/etc/systemd/system/network.service
+systemctl stop network.service
+systemctl disable network.service
+rm $networkservice
 echo "\
 [Unit]
 Description=Network Connectivity
@@ -62,6 +69,6 @@ ExecStop=/sbin/ip link set dev $eth2name down
 
 [Install]
 WantedBy=multi-user.target
-" > /etc/systemd/system/network.service
+" > $networkservice
 systemctl enable network.service
 reboot
